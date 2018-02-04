@@ -4,9 +4,22 @@ const express = require('express'),
   logger = require('morgan'),
   cookieParser = require('cookie-parser'),
   bodyParser = require('body-parser'),
+  mongoose = require('mongoose'),
+  passport = require('passport'),
+  LocalStrategy = require('passport-local').Strategy,
   index = require('./routes/index'),
+  expressSession = require('express-session')({
+    secret: 'some random string goes here',
+    resave: false,
+    saveUninitialized: false
+  }),
   api = require('./routes/api/index'),
+  User = require('./models/user'),
+  users = require('./routes/api/users'),
   app = express()
+
+  // Connect Mongoose
+mongoose.connect('mongodb://localhost/musiclist')
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'))
@@ -18,10 +31,21 @@ app.use(logger('dev'))
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(cookieParser())
+app.use(expressSession)
+app.use(passport.initialize())
+app.use(passport.session())
+
 app.use(express.static(path.join(__dirname, 'public')))
 
 app.use('/', index)
 app.use('/api', api)
+app.use('/api/users', users)
+
+// Configure Passport
+
+passport.use(new LocalStrategy(User.authenticate()))
+passport.serializeUser(User.serializeUser())
+passport.deserializeUser(User.deserializeUser())
 
 // catch 404 and forward to error handler
 app.use((req, res, next) => {
